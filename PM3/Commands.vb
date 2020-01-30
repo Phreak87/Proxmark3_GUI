@@ -1,47 +1,27 @@
 ﻿Public Class Commands
-    Public XDoc As Xml.XmlDocument
-    Public ONE As Boolean = False
-    Public TEXT As String
+    Public XDOC As Xml.XmlDocument
     Public COMM As List(Of Command)
     Public TREE As List(Of NodeClass)
 
-    Sub New()
-        TEXT = ExtractHelpText()
-        TREE = CreateTree(Nothing)
+    Public BONE As Boolean = False
+    Public XNAM As String = "PMConfig.xml"
 
+    Sub New()
         If My.Computer.FileSystem.FileExists("PMConfig.xml") = False Then
-            XDoc = New Xml.XmlDocument
-            Dim XNod = XDoc.CreateElement("PM3")
-            XDoc.AppendChild(XNod)
-            BuildXML(TREE, XNod, False)
-            XDoc.Save("PMConfig.xml")
+            COMM = TextToCommands(ExtractHelpText())
+            TREE = CommandsToTree(COMM)
+            XDOC = BuildXML(COMM)
+            XDOC.Save("PMConfig.xml")
         Else
-            XDoc = New Xml.XmlDocument
-            XDoc.Load("PMConfig.xml")
+            XDOC = New Xml.XmlDocument
+            XDOC.Load("PMConfig.xml")
+            COMM = XDOCToCommands(XDOC)
+            TREE = CommandsToTree(COMM)
         End If
     End Sub
 
-    Sub BuildXML(ByVal Tree As List(Of Commands.NodeClass), ByVal ParentNode As Xml.XmlNode, ByVal One As Boolean)
-        For Each Entry In Tree
-            If IsNothing(Entry.SubEntrys) Then
-                Dim Node = ParentNode.AppendChild(ParentNode.OwnerDocument.CreateElement("_" & Entry.ToString))
-                Dim Help = Node.AppendChild(Node.OwnerDocument.CreateElement("Help")) : Help.InnerText = Entry.Entry.HelpTxt
-                Dim Offl = Node.AppendChild(Node.OwnerDocument.CreateElement("Offline")) : Offl.InnerText = Entry.Entry.Offline
-                Dim Exte = Node.AppendChild(Node.OwnerDocument.CreateElement("Extended")) : Exte.InnerText = False
-                Dim Usag = Node.AppendChild(Node.OwnerDocument.CreateElement("Usage")) : Usag.InnerText = ""
-                Dim Pars = Node.AppendChild(Node.OwnerDocument.CreateElement("Parameters"))
-                For Each Para In Entry.Entry.OptPara
-                    Dim Par = Pars.AppendChild(Node.OwnerDocument.CreateElement("Parameter")) : Par.InnerText = Para
-                Next
-            Else
-                Dim Node = ParentNode.AppendChild(ParentNode.OwnerDocument.CreateElement("_" & Entry.ToString))
-                BuildXML(Entry.SubEntrys, Node, One)
-            End If
-        Next
-    End Sub
-
     Sub SetFilter(ByVal Text As String)
-        TREE = CreateTree(Text)
+        TREE = CommandsToTree(COMM, Text)
     End Sub
 
     Function ExtractHelpText() As String
@@ -61,18 +41,57 @@
 
             PRC.WaitForExit(2000)
             Return SB.ToString
+        Else
+            If My.Computer.FileSystem.FileExists("proxmark3Help.txt") Then
+                Return My.Computer.FileSystem.ReadAllText("proxmark3Help.txt")
+            End If
         End If
         Return Nothing
     End Function
-
-    Function CreateTree(ByVal Filter As String) As List(Of NodeClass)
-        Dim TXT As List(Of String) = Split(TEXT, vbCrLf).ToList
+    Function TextToCommands(ByVal Text As String) As List(Of Command)
+        Dim TXT As List(Of String) = Split(Text, vbCrLf).ToList
         Dim LST As List(Of String) = TXT.FindAll(Function(s) Split(s, "|").Count >= 3).ToArray.ToList
         LST.RemoveAll(Function(s) Mid(s, 26, 1) <> "|" Or Mid(s, 1, 7) = "command" Or Mid(s, 1, 7) = "-------")
-        COMM = New List(Of Command) : For Each Entry In LST : COMM.Add(New Command(Entry)) : Next
-        If Not String.IsNullOrEmpty(Filter) Then COMM.RemoveAll(Function(s) s.OrgPath.Contains(Filter) = False)
-        If COMM.Count = 1 Then ONE = True Else ONE = False
-        Return BuildNodes(0, COMM)
+        Dim CMDL = New List(Of Command) : For Each Entry In LST : CMDL.Add(New Command(Entry)) : Next
+        Return CMDL
+    End Function
+    Function XDOCToCommands(ByVal XDOC As Xml.XmlDocument) As List(Of Command)
+        Dim COMML As New List(Of Command)
+        For Each Entry As Xml.XmlNode In XDOC.SelectNodes("PM3/*")
+            COMML.Add(New Command(Entry))
+        Next
+        Return COMML
+    End Function
+    Function CommandsToTree(ByVal Comm As List(Of Command), Optional ByVal Filter As String = Nothing) As List(Of NodeClass)
+        Dim conns As New List(Of Command) : conns.AddRange(Comm)
+        If Not String.IsNullOrEmpty(Filter) Then conns.RemoveAll(Function(s) s.OrgPath.Contains(Filter.Replace(" ", ".")) = False)
+        If conns.Count = 1 Then BONE = True Else BONE = False
+        Return BuildNodes(0, conns)
+    End Function
+    Function BuildXML(ByVal Commands As List(Of Command))
+        Dim XDoc As New Xml.XmlDocument
+        Dim XNod = XDoc.CreateElement("PM3")
+        XDoc.AppendChild(XNod)
+
+        For Each Command In Commands
+            Dim Node = XNod.AppendChild(XNod.OwnerDocument.CreateElement("_" & String.Join(".", Command.ModPath)))
+            Dim Help = Node.AppendChild(XNod.OwnerDocument.CreateElement("Help")) : Help.InnerText = Command.HelpTxt
+            Dim Offl = Node.AppendChild(XNod.OwnerDocument.CreateElement("Offline")) : Offl.InnerText = Command.Offline
+            Dim Exte = Node.AppendChild(XNod.OwnerDocument.CreateElement("Extended")) : Exte.InnerText = False
+            Dim Usag = Node.AppendChild(XNod.OwnerDocument.CreateElement("Usage")) : Usag.InnerText = ""
+            Dim Pars = Node.AppendChild(XNod.OwnerDocument.CreateElement("Parameters"))
+            For Each Para In Command.OptPara
+                Dim Par = Pars.AppendChild(Node.OwnerDocument.CreateElement("Parameter"))
+                Par.Attributes.Append(Node.OwnerDocument.CreateAttribute("Name")) : Par.Attributes("Name").Value = Para.Name
+                Par.Attributes.Append(Node.OwnerDocument.CreateAttribute("Default")) : Par.Attributes("Default").Value = Para.Default
+                If Not IsNothing(Para.Values) Then
+                    For Each ParVal In Para.Values
+                        Dim Val = Par.AppendChild(Node.OwnerDocument.CreateElement("Value")) : Val.InnerText = ParVal
+                    Next
+                End If
+            Next
+        Next
+        Return XDoc
     End Function
     Public Shared Function BuildNodes(ByVal Level As Integer, ByVal CList As List(Of Command)) As List(Of NodeClass)
         Dim Target As New List(Of NodeClass)
@@ -97,27 +116,70 @@
         Property ModPath As String()
         Property Offline As Boolean
         Property HelpTxt As String
-        Property OptPara As New List(Of String)
+        Property OptPara As New List(Of Parameter)
         Public Overrides Function ToString() As String
             Return String.Join(".", ModPath) & " :" & OptPara.Count
         End Function
+        Sub New(ByVal XMLNode As Xml.XmlNode)
+            OrgPath = Mid(XMLNode.Name, 2)
+            ModPath = Split(OrgPath, ".")
+            Offline = CBool(XMLNode.SelectSingleNode("Offline").InnerText)
+            HelpTxt = XMLNode.SelectSingleNode("Help").InnerText
+            Dim Parameters As Xml.XmlNodeList = XMLNode.SelectNodes("Parameters/Parameter")
+            For Each Entry As Xml.XmlNode In Parameters
+                OptPara.Add(New Commands.Parameter(Entry))
+            Next
+        End Sub
         Sub New(ByVal Commandline As String)
             Dim SPLT As System.Text.RegularExpressions.Match = System.Text.RegularExpressions.Regex.Match(Commandline, "^([a-zA-Z0-9 ]*)\|([YN][ ]*)\|(.*)?$", System.Text.RegularExpressions.RegexOptions.Multiline)
             OrgPath = SPLT.Groups(1).Value.Trim : ModPath = Split(OrgPath, " ")
             Offline = SPLT.Groups(2).Value.Trim = "Y"
             HelpTxt = SPLT.Groups(3).Value.Trim
 
+            If OrgPath.Contains("setdebugmode") Then Throw New Exception
+
             Dim ReplText As String = HelpTxt
-            Dim Params As System.Text.RegularExpressions.MatchCollection = System.Text.RegularExpressions.Regex.Matches(ReplText, "\[(.*?)\]")
+            Dim Params As System.Text.RegularExpressions.MatchCollection = System.Text.RegularExpressions.Regex.Matches(ReplText, "(\[(.*?)\]|<(.*?)>)")
             For i As Integer = 0 To Params.Count - 1
-                OptPara.Add(Params(i).Groups(1).Value)
+                Dim ParaVal As String = Params(i).Groups(1).Value
+                OptPara.Add(New Parameter(ParaVal))
                 ReplText = ReplText.Replace(Params(i).Value, "")
             Next
 
-            Dim Params2 As System.Text.RegularExpressions.MatchCollection = System.Text.RegularExpressions.Regex.Matches(ReplText, "<(.*?)>")
-            For i As Integer = 0 To Params2.Count - 1
-                OptPara.Add(Params2(i).Groups(1).Value)
+        End Sub
+    End Class
+
+    Public Class Parameter
+        Public Name As String
+        Public Values As String()
+        Public [Default] As String = 0
+        Sub New(ByVal XMLNode As Xml.XmlNode)
+            Dim VALBuff As New List(Of String)
+            Name = XMLNode.Attributes("Name").Value
+            [Default] = XMLNode.Attributes("Default").Value
+            For Each SubNode In XMLNode.ChildNodes
+                VALBuff.Add(SubNode.innerText)
             Next
+            Values = VALBuff.ToArray
+        End Sub
+        Sub New(ByVal _Name As String)
+            Name = _Name
+            If IsNothing(_Name) Then Exit Sub
+            If _Name.Trim = "" Then Exit Sub
+            If _Name.StartsWith("<") Then _Name = Mid(_Name, 2, Len(_Name) - 2)
+            If System.Text.RegularExpressions.Regex.IsMatch(_Name, "<(.*?)>") Then
+                Values = Split(System.Text.RegularExpressions.Regex.Match(Name, "<(.*?)>").Groups(1).Value, "|")
+                [Default] = Values(0)
+            Else
+                If System.Text.RegularExpressions.Regex.IsMatch(_Name, "\((.*?)\)") Then
+                    Values = Split(System.Text.RegularExpressions.Regex.Match(_Name, "\((.*?)\)").Groups(1).Value, "|")
+                    [Default] = Values(0)
+                End If
+                If _Name.Contains("|") Then
+                    Values = Split(_Name, "|")
+                    [Default] = Values(0)
+                End If
+            End If
         End Sub
     End Class
     Public Class NodeClass

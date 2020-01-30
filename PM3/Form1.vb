@@ -28,7 +28,7 @@
         CleanFSLogs()
 
         Commands = New Commands
-        BuildTree(Commands.TREE, TreeView1.Nodes(0), Commands.ONE)
+        BuildTree(Commands.TREE, TreeView1.Nodes(0), Commands.BONE)
         TreeView1.Nodes(0).Expand()
         Dim Serial As New ComSelect : Serial.ShowDialog()
         Process = New PM3Process(Serial.ComboBox1.Text)
@@ -74,7 +74,7 @@
             HelpTab.Text = Mid(FName, InStrRev(FName, "\") + 1)
             TabControl1.TabPages.Add(HelpTab)
             TabControl1.SelectedTab = HelpTab
-            Dim MD As New Markdown(My.Computer.FileSystem.ReadAllText(My.Computer.FileSystem.GetFiles(Path)(0)))
+            Dim MD As New Markdown(My.Computer.FileSystem.GetFiles(Path)(0))
             HTMLTab.DocumentText = MD.Result.ToString
         End If
     End Sub
@@ -82,17 +82,16 @@
     Sub CreateMenu(ByVal Command As Commands.Command)
         Dim OPTS As New List(Of Control)
         Dim ViewI As Integer = 0
-        If IsNothing(Command) Then
-            TxtRaw.Text = TreeView1.SelectedNode.FullPath.Replace(TreeView1.Nodes(0).Text & "\", "")
-        Else
-            TxtRaw.Text = String.Join(" ", Command.ModPath)
-        End If
+
+        If IsNothing(Command) Then TxtRaw.Text = TreeView1.SelectedNode.FullPath.Replace(TreeView1.Nodes(0).Text & "\", " ")
+        If Not IsNothing(Command) Then TxtRaw.Text = String.Join(" ", Command.ModPath)
         SplitContainer2.Panel1.Controls.Clear()
         If IsNothing(Command) Then Exit Sub
 
-        Dim XNOD = Commands.XDoc.SelectSingleNode("PM3/_" & TxtRaw.Text.Replace(" ", "/_") & "/Usage")
-
-        Dim HLP As New TextBox : HLP.Text = Command.HelpTxt & vbCrLf & XNOD.InnerText
+        ' -------------------------------------------------------------------------------------------------------
+        ' Provide help from commandline and the command specific help
+        ' -------------------------------------------------------------------------------------------------------
+        Dim HLP As New TextBox
         HLP.ScrollBars = ScrollBars.Vertical
         HLP.Left = 10 : HLP.Top = 5
         HLP.Height = 100
@@ -100,6 +99,10 @@
         HLP.Multiline = True : HLP.BorderStyle = BorderStyle.None
         HLP.Font = New Font("Arial", 10)
         HLP.BackColor = Color.LightYellow : SplitContainer2.Panel1.Controls.Add(HLP)
+
+        Dim XNOD = Commands.XDOC.SelectSingleNode("PM3/_" & TxtRaw.Text.Replace(" ", ".") & "/Usage")
+        If String.IsNullOrEmpty(XNOD.Value) Then  HLP.Text = Command.HelpTxt
+        If Not String.IsNullOrEmpty(XNOD.Value) Then HLP.Text = XNOD.Value
 
         Dim BTNHeight As Integer = 25
 
@@ -113,9 +116,9 @@
             SplitContainer2.Panel1.Controls.Add(GRP)
 
             For Each Opt In Command.OptPara
-                If Opt.ToLower = "deprecated" Then Continue For
+                ' If Opt.ToLower = "deprecated" Then Continue For
 
-                If Opt.ToLower = "filename" Then
+                If Opt.Name.ToLower = "filename" Then
                     Dim BTNDIR As New Button
                     BTNDIR.Text = "Save/Load Filename"
                     BTNDIR.Left = 10
@@ -127,32 +130,13 @@
 
                 Dim LBL As New Label
                 LBL.Top = 20 + (ViewI * 30)
-                LBL.Text = Opt : LBL.Left = 10
+                LBL.Text = Opt.Name : LBL.Left = 10
                 LBL.Width = GRP.Width * 0.3
                 GRP.Controls.Add(LBL)
 
                 Dim CBO As New ComboBox
-                Dim STR As String()
-                If System.Text.RegularExpressions.Regex.IsMatch(Opt, "<.*?>") Then
-                    Dim RGX As String = System.Text.RegularExpressions.Regex.Match(Opt, "<(.*?)>").Groups(1).Value
-                    STR = Split(RGX, "|")
-                    If Opt.Contains("|") And RGX.Contains("|") = False Then STR = Split(Opt, "|")
-                Else
-                    STR = Split(Opt, "|")
-                End If
-                For Each Entry In STR
-                    If Entry <> Opt Then
-                        CBO.Items.Add(Entry.Replace("'", ""))
-                    End If
-                    If Entry.Contains("-") Then
-                        Dim SPL As String() = Split(Entry, "-")
-                        If IsNumeric(SPL(0)) AndAlso IsNumeric(SPL(1)) Then
-                            For i As Integer = Split(Entry, "-")(0) To Split(Entry, "-")(1)
-                                CBO.Items.Add(i)
-                            Next
-                        End If
-                    End If
-                Next
+                If Not IsNothing(Opt.Values) Then CBO.Items.AddRange(Opt.Values)
+                If Not IsNothing(Opt.Default) Then CBO.Text = Opt.Default
 
                 CBO.Left = LBL.Left + LBL.Width + 10
                 CBO.Width = GRP.Width * 0.65
@@ -181,7 +165,7 @@
         Dim BTN As New Button
         BTN.Text = "Run"
         BTN.Left = 10
-        BTN.Top = SplitContainer2.Panel1.Height - BTN.Height - 5
+        BTN.Top = SplitContainer2.Panel1.Height - BTN.Height - BTN.Height - 5
         BTN.Width = SplitContainer2.Panel1.Width * 0.97
         BTN.Enabled = Process.IsReady
         AddHandler BTN.Click, Sub()
@@ -194,17 +178,38 @@
         Dim BTNH As New Button
         BTNH.Text = "Usage and Examples"
         BTNH.Left = 10
-        BTNH.Top = SplitContainer2.Panel1.Height - BTNH.Height - BTN.Height - 5
-        BTNH.Width = SplitContainer2.Panel1.Width * 0.97
+        BTNH.Top = SplitContainer2.Panel1.Height - BTN.Height - 5
+        BTNH.Width = SplitContainer2.Panel1.Width * 0.48
         BTNH.Enabled = Process.IsReady
         AddHandler BTNH.Click, Sub()
                                    ListView1.Items.Clear() : TabControl1.SelectedTab = TabControl1.TabPages(0)
                                    Dim SendText As String = TreeView1.SelectedNode.FullPath.Replace(TreeView1.Nodes(0).Text & "\", "")
                                    Dim Res = Process.SendCommand(SendText.Replace("\", " ") & " h")
-                                   Dim NOD = Commands.XDoc.SelectSingleNode("PM3/_" & SendText.Replace("\", "/_") & "/Usage")
+                                   Dim NOD = Commands.XDOC.SelectSingleNode("PM3/_" & SendText.Replace("\", ".") & "/Usage")
                                    NOD.InnerText = Res : NOD.OwnerDocument.Save("PMConfig.xml")
                                End Sub
         SplitContainer2.Panel1.Controls.Add(BTNH)
+
+        Dim BTNE As New Button
+        BTNE.Text = "Add Parameter"
+        BTNE.Left = (SplitContainer2.Panel1.Width * 0.97) - BTNH.Width + 10
+        BTNE.Top = SplitContainer2.Panel1.Height - BTN.Height - 5
+        BTNE.Width = SplitContainer2.Panel1.Width * 0.48
+        AddHandler BTNE.Click, Sub()
+                                   Dim ParNam As String = InputBox("Name")
+                                   Dim ParVal As String = InputBox("Values (Comma-seperated)")
+                                   Dim XNODE = Commands.XDOC.SelectSingleNode("PM3/_" & TreeView1.SelectedNode.FullPath.Replace(TreeView1.Nodes(0).Text & "\", "").Replace("\", ".") & "/Parameters")
+                                   Dim Par = XNODE.AppendChild(XNODE.OwnerDocument.CreateElement("Parameter"))
+                                   Par.Attributes.Append(XNODE.OwnerDocument.CreateAttribute("Name")) : Par.Attributes("Name").Value = ParNam
+                                   Par.Attributes.Append(XNODE.OwnerDocument.CreateAttribute("Default")) : Par.Attributes("Default").Value = Split(ParVal, ",")(0)
+                                   For Each ParVal In Split(ParVal, ",")
+                                       Dim Val = Par.AppendChild(Par.OwnerDocument.CreateElement("Value")) : Val.InnerText = ParVal
+                                   Next : XNODE.OwnerDocument.Save("PMConfig.xml")
+                                   CType(TreeView1.SelectedNode.Tag, Commands.Command).OptPara.Add(New Commands.Parameter(Par))
+                                   CreateMenu(Command) : Exit Sub
+                               End Sub
+        SplitContainer2.Panel1.Controls.Add(BTNE)
+
     End Sub
 
 #Region "Resize"
@@ -247,31 +252,15 @@
         TreeView1.Nodes(0).Nodes.Clear()
         TreeView1.BeginUpdate()
         Commands.SetFilter(ToolStripTextBox1.Text)
-        BuildTree(Commands.TREE, TreeView1.Nodes(0), Commands.ONE)
+        BuildTree(Commands.TREE, TreeView1.Nodes(0), Commands.BONE)
 
         If ToolStripTextBox1.Text <> "" Then TreeView1.Nodes(0).ExpandAll()
         If ToolStripTextBox1.Text = "" Then TreeView1.Nodes(0).Collapse(False) : TreeView1.Nodes(0).Expand()
         TreeView1.EndUpdate()
     End Sub
-
-    Private Sub BtnRawSend_Click(sender As System.Object, e As System.EventArgs) Handles BtnRawSend.Click
+    Private Sub BtnRawSend_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles BtnRawSend.Click
         ListView1.Items.Clear()
         Process.SendCommand(TxtRaw.Text)
     End Sub
 
-    Private Sub SaveConfigToolStripMenuItem_Click(sender As System.Object, e As System.EventArgs) Handles SaveConfigToolStripMenuItem.Click
-        For Each Entry In Commands.COMM
-            If Entry.OrgPath.ToLower = "quit" Then Continue For
-            If Entry.OrgPath.ToLower = "exit" Then Continue For
-            My.Computer.FileSystem.WriteAllText("Send.txt", Entry.OrgPath & vbCrLf, True)
-            Dim STRRECV As String = (Process.SendCommand(String.Join(" ", Entry.ModPath) & " -H"))
-            If STRRECV.ToLower.Contains("usage") Then
-                'MsgBox(STRRECV)
-            End If
-        Next
-    End Sub
-
-    Private Sub Panel1_Paint(sender As System.Object, e As System.Windows.Forms.PaintEventArgs) Handles Panel1.Paint
-
-    End Sub
 End Class

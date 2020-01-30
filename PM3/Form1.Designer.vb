@@ -23,7 +23,7 @@ Partial Class P3GUI
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(P3GUI))
-        Dim TreeNode3 As System.Windows.Forms.TreeNode = New System.Windows.Forms.TreeNode("Proxmark3")
+        Dim TreeNode2 As System.Windows.Forms.TreeNode = New System.Windows.Forms.TreeNode("Proxmark3")
         Me.StatusStrip1 = New System.Windows.Forms.StatusStrip()
         Me.ToolStripSplitButton1 = New System.Windows.Forms.ToolStripSplitButton()
         Me.SaveConfigToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
@@ -81,7 +81,7 @@ Partial Class P3GUI
         'SaveConfigToolStripMenuItem
         '
         Me.SaveConfigToolStripMenuItem.Name = "SaveConfigToolStripMenuItem"
-        Me.SaveConfigToolStripMenuItem.Size = New System.Drawing.Size(152, 22)
+        Me.SaveConfigToolStripMenuItem.Size = New System.Drawing.Size(137, 22)
         Me.SaveConfigToolStripMenuItem.Text = "Save Config"
         '
         'LBLConn
@@ -134,9 +134,9 @@ Partial Class P3GUI
         Me.TreeView1.HideSelection = False
         Me.TreeView1.Location = New System.Drawing.Point(0, 0)
         Me.TreeView1.Name = "TreeView1"
-        TreeNode3.Name = "Knoten0"
-        TreeNode3.Text = "Proxmark3"
-        Me.TreeView1.Nodes.AddRange(New System.Windows.Forms.TreeNode() {TreeNode3})
+        TreeNode2.Name = "Knoten0"
+        TreeNode2.Text = "Proxmark3"
+        Me.TreeView1.Nodes.AddRange(New System.Windows.Forms.TreeNode() {TreeNode2})
         Me.TreeView1.Size = New System.Drawing.Size(297, 652)
         Me.TreeView1.TabIndex = 0
         '

@@ -1,7 +1,6 @@
 ﻿Public Class Markdown
     Dim CSS As New System.Text.StringBuilder
     Public Result As New System.Text.StringBuilder
-    Dim SelLine As Integer = 0
 
     Enum State
         Regular = 0
@@ -44,11 +43,9 @@
         BOLD = 25
     End Enum
 
-    Sub New(ByVal MD As String)
-        CSS.Clear() : CSS.Append(My.Computer.FileSystem.ReadAllText("MD.css"))
-        GenHTML(MD)
+    Sub New(ByVal Filename As String)
+        GenHTML(My.Computer.FileSystem.ReadAllText(Filename))
     End Sub
-
     Public Function GenHTML(ByVal Text As String)
         Result.Clear()
         Result.AppendLine("<HTML>")
@@ -179,9 +176,10 @@
         Public Text As String
         Public Link As String
         Sub New(ByVal Source As String)
-            Dim RGX As System.Text.RegularExpressions.Match = System.Text.RegularExpressions.Regex.Match(Source, "\[(.*?)\]\((.*?)\)")
+            Dim RGX As System.Text.RegularExpressions.Match = System.Text.RegularExpressions.Regex.Match(Source.Trim, "\[(.*?)\]\((.*?)\)")
             Text = RGX.Groups(1).Value
             Link = RGX.Groups(2).Value
+            If Text = "" Then Text = Source.Trim
         End Sub
     End Class
     Public Function SingleLineStyle(ByVal Text As String) As String

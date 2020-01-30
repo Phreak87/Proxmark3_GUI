@@ -18,7 +18,8 @@ Public Class PM3Process
 
     Sub New(ByVal Port As String)
         If My.Computer.FileSystem.FileExists("Proxmark3.exe") = False Then
-            MsgBox("Anwendung 'Proxmark3.exe' nicht gefunden.", MsgBoxStyle.Exclamation) : Exit Sub
+            MsgBox("Anwendung 'Proxmark3.exe' nicht gefunden." & vbCrLf & _
+                   "Programm läuft im Offline-Modus", MsgBoxStyle.Exclamation) : Exit Sub
         End If
         Dim PI As New ProcessStartInfo("Proxmark3.exe", Port)
         PI.WindowStyle = ProcessWindowStyle.Hidden
@@ -88,9 +89,9 @@ Public Class PM3Process
 
     Function SendCommand(ByVal Command As String) As String
         ' Pre-Exit
-        If IsNothing(PRC) Then Return ""
-        If IsNothing(FSL) = True Then Return ""
-        If PRC.HasExited = True Then Return ""
+        If IsNothing(PRC) Then RaiseEvent NewLogEntry("Not Connected") : Return ""
+        If IsNothing(FSL) = True Then RaiseEvent NewLogEntry("No Logfile") : Return ""
+        If PRC.HasExited = True Then RaiseEvent NewLogEntry("Process exited") : Return ""
 
         ' Clean Logs
         FSL.Position = FSL.Length
