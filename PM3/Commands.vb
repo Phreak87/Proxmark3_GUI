@@ -136,8 +136,6 @@
             Offline = SPLT.Groups(2).Value.Trim = "Y"
             HelpTxt = SPLT.Groups(3).Value.Trim
 
-            If OrgPath.Contains("setdebugmode") Then Throw New Exception
-
             Dim ReplText As String = HelpTxt
             Dim Params As System.Text.RegularExpressions.MatchCollection = System.Text.RegularExpressions.Regex.Matches(ReplText, "(\[(.*?)\]|<(.*?)>)")
             For i As Integer = 0 To Params.Count - 1
