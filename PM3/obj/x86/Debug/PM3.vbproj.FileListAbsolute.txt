@@ -44,10 +44,10 @@ C:\Users\adecma3\Desktop\Proxmark3_GUI-master\PM3\obj\x86\Debug\PM3.exe
 C:\Users\Phreak87\Desktop\PM3_GUI\trunk\PM3\obj\x86\Debug\PM3.exe
 C:\Users\Phreak87\Desktop\PM3_GUI\trunk\PM3\obj\x86\Debug\PM3.xml
 C:\Users\Phreak87\Desktop\PM3_GUI\trunk\PM3\obj\x86\Debug\PM3.pdb
-C:\Users\Phreak87\Desktop\PM3_GUI\trunk\PM3\bin\Debug\PM3.exe
-C:\Users\Phreak87\Desktop\PM3_GUI\trunk\PM3\bin\Debug\PM3.pdb
-C:\Users\Phreak87\Desktop\PM3_GUI\trunk\PM3\bin\Debug\PM3.xml
 C:\Users\Phreak87\Desktop\PM3_GUI\trunk\PM3\obj\x86\Debug\PM3.ComSelect.resources
 C:\Users\Phreak87\Desktop\PM3_GUI\trunk\PM3\obj\x86\Debug\PM3.P3GUI.resources
 C:\Users\Phreak87\Desktop\PM3_GUI\trunk\PM3\obj\x86\Debug\PM3.Resources.resources
 C:\Users\Phreak87\Desktop\PM3_GUI\trunk\PM3\obj\x86\Debug\PM3.vbproj.GenerateResource.Cache
+C:\Users\Phreak87\Desktop\PM3_GUI\trunk\PM3\bin\Debug\PM3.exe
+C:\Users\Phreak87\Desktop\PM3_GUI\trunk\PM3\bin\Debug\PM3.pdb
+C:\Users\Phreak87\Desktop\PM3_GUI\trunk\PM3\bin\Debug\PM3.xml

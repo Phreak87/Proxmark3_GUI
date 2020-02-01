@@ -44,6 +44,7 @@
     End Enum
 
     Sub New(ByVal Filename As String)
+        CSS.AppendLine(My.Computer.FileSystem.ReadAllText("MD.css"))
         GenHTML(My.Computer.FileSystem.ReadAllText(Filename))
     End Sub
     Public Function GenHTML(ByVal Text As String)

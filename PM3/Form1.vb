@@ -19,7 +19,7 @@
         Next
     End Sub
 
-    Private Sub P3GUI_FormClosing(sender As Object, e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
+    Private Sub P3GUI_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
         Process.RECVExit()
     End Sub
 
@@ -83,7 +83,7 @@
         Dim OPTS As New List(Of Control)
         Dim ViewI As Integer = 0
 
-        If IsNothing(Command) Then TxtRaw.Text = TreeView1.SelectedNode.FullPath.Replace(TreeView1.Nodes(0).Text & "\", " ")
+        If IsNothing(Command) Then TxtRaw.Text = TreeView1.SelectedNode.FullPath.Replace(TreeView1.Nodes(0).Text, " ").Replace("/", " ")
         If Not IsNothing(Command) Then TxtRaw.Text = String.Join(" ", Command.ModPath)
         SplitContainer2.Panel1.Controls.Clear()
         If IsNothing(Command) Then Exit Sub
@@ -100,47 +100,66 @@
         HLP.Font = New Font("Arial", 10)
         HLP.BackColor = Color.LightYellow : SplitContainer2.Panel1.Controls.Add(HLP)
 
-        Dim XNOD = Commands.XDOC.SelectSingleNode("PM3/_" & TxtRaw.Text.Replace(" ", ".") & "/Usage")
-        If String.IsNullOrEmpty(XNOD.Value) Then  HLP.Text = Command.HelpTxt
-        If Not String.IsNullOrEmpty(XNOD.Value) Then HLP.Text = XNOD.Value
+        Dim XNOD = Commands.XDOC.SelectSingleNode("PM3/" & TxtRaw.Text.Replace(" ", ".") & "/Usage")
+        If String.IsNullOrEmpty(XNOD.InnerText) Then HLP.Text = Command.HelpTxt
+        If Not String.IsNullOrEmpty(XNOD.InnerText) Then HLP.Text = XNOD.InnerText
 
         Dim BTNHeight As Integer = 25
 
-        If Command.OptPara.Count > 0 Then
-            Dim GRP As New GroupBox
-            GRP.Text = "Parameters"
-            GRP.Left = 10
-            GRP.Height = SplitContainer2.Panel1.Height - HLP.Height - (3 * BTNHeight)
-            GRP.Top = HLP.Top + HLP.Height + 15
-            GRP.Width = SplitContainer2.Panel1.Width * 0.97
-            SplitContainer2.Panel1.Controls.Add(GRP)
+        ' -------------------------------------------------------------------------------------------------------
+        ' Group all Controls
+        ' -------------------------------------------------------------------------------------------------------
+        Dim GRP As New GroupBox
+        GRP.Text = "Parameters"
+        GRP.Left = 10
+        GRP.Height = SplitContainer2.Panel1.Height - HLP.Height - (3 * BTNHeight)
+        GRP.Top = HLP.Top + HLP.Height + 15
+        GRP.Width = SplitContainer2.Panel1.Width * 0.97
+        SplitContainer2.Panel1.Controls.Add(GRP)
 
-            For Each Opt In Command.OptPara
-                ' If Opt.ToLower = "deprecated" Then Continue For
+        ' -------------------------------------------------------------------------------------------------------
+        ' Control positioning
+        ' -------------------------------------------------------------------------------------------------------
+        Dim ACTTop As Integer = 20
+        Dim ACTLeft1 As Integer = 10
+        Dim ACTLeft2 As Integer = GRP.Width * 0.3
+        Dim ACTLeft3 As Integer = GRP.Width * 0.9
+        Dim ACTWidth1 As Integer = ACTLeft2 - ACTLeft1 - 10
+        Dim ACTWidth2 As Integer = ACTLeft3 - ACTLeft2 - 10
+        Dim ACTWidth3 As Integer = GRP.Width - ACTLeft3 - 20
 
-                If Opt.Name.ToLower = "filename" Then
-                    Dim BTNDIR As New Button
-                    BTNDIR.Text = "Save/Load Filename"
-                    BTNDIR.Left = 10
-                    BTNDIR.Width = GRP.Width * 0.97
-                    BTNDIR.Top = 20 + (ViewI * 30)
-                    GRP.Controls.Add(BTNDIR)
-                    Continue For
-                End If
+        ' -------------------------------------------------------------------------------------------------------
+        ' Parameters
+        ' -------------------------------------------------------------------------------------------------------
+        For Each Opt In Command.OptPara
 
-                Dim LBL As New Label
-                LBL.Top = 20 + (ViewI * 30)
-                LBL.Text = Opt.Name : LBL.Left = 10
-                LBL.Width = GRP.Width * 0.3
-                GRP.Controls.Add(LBL)
+            ACTTop = 20 + (ViewI * 30)
 
-                Dim CBO As New ComboBox
-                If Not IsNothing(Opt.Values) Then CBO.Items.AddRange(Opt.Values)
-                If Not IsNothing(Opt.Default) Then CBO.Text = Opt.Default
+            If Opt.Name.ToLower = "filename" Then
+                Dim BTNDIR As New Button
+                BTNDIR.Text = "Save/Load Filename"
+                BTNDIR.Top = ACTTop
+                BTNDIR.Left = ACTLeft1
+                BTNDIR.Width = ACTWidth2
+                GRP.Controls.Add(BTNDIR)
+                Continue For
+            End If
 
-                CBO.Left = LBL.Left + LBL.Width + 10
-                CBO.Width = GRP.Width * 0.65
-                CBO.Top = 20 + (ViewI * 30)
+            Dim LBL As New Label
+            LBL.Text = Opt.Name
+            LBL.Top = ACTTop
+            LBL.Left = ACTLeft1
+            LBL.Width = ACTWidth1
+            GRP.Controls.Add(LBL)
+
+            Dim CBO As New ComboBox
+            If Not IsNothing(Opt.Values) Then CBO.Items.AddRange(Opt.Values)
+            CBO.Top = ACTTop
+            CBO.Left = ACTLeft2
+            CBO.Width = ACTWidth2
+            If Not IsNothing(Opt.Default) Then
+                CBO.Text = Opt.Default
+            Else
                 If CBO.Items.Count > 0 Then
                     CBO.Text = CBO.Items(0)
                     TxtRaw.Text += " " & CBO.Text
@@ -148,30 +167,55 @@
                     CBO.Text = 0
                     TxtRaw.Text += " " & CBO.Text
                 End If
-                GRP.Controls.Add(CBO) : OPTS.Add(CBO)
-                AddHandler CBO.TextChanged, Sub(S, E)
-                                                TxtRaw.Text = String.Join(" ", Command.ModPath)
-                                                For Each Entry In OPTS
-                                                    TxtRaw.Text += " " & Entry.Text
-                                                Next
-                                            End Sub
+            End If
+            GRP.Controls.Add(CBO) : OPTS.Add(CBO)
+            AddHandler CBO.TextChanged, Sub(S, E)
+                                            TxtRaw.Text = String.Join(" ", Command.ModPath)
+                                            For Each Entry In OPTS
+                                                TxtRaw.Text += " " & Entry.Text
+                                            Next
+                                        End Sub
 
-                ViewI += 1
-            Next
+            Dim PARBTN As New Button
+            PARBTN.Text = "X"
+            PARBTN.Height = 22
+            PARBTN.Top = ACTTop
+            PARBTN.Left = ACTLeft3
+            PARBTN.Width = ACTWidth3
+            PARBTN.Tag = Opt
+            GRP.Controls.Add(PARBTN)
+            AddHandler PARBTN.Click, Sub()
+                                         Commands.DelParameter(TreeView1.SelectedNode, Opt)
+                                         CreateMenu(Command) : Exit Sub
+                                     End Sub
 
-        End If
+            ViewI += 1
+        Next
+
+        Dim BTNADD As New Button
+        BTNADD.Text = "Add Parameter"
+        BTNADD.Top = 20 + (ViewI * 30)
+        BTNADD.Left = ACTLeft3
+        BTNADD.Width = ACTWidth3
+        AddHandler BTNADD.Click, Sub()
+                                     Dim ParNam As String = InputBox("Name")
+                                     Dim ParVal As String = InputBox("Values (Comma-seperated)")
+                                     Commands.AddParameter(TreeView1.SelectedNode, ParNam, ParVal)
+                                     CreateMenu(Command) : Exit Sub
+                                 End Sub
+        GRP.Controls.Add(BTNADD)
 
 
         Dim BTN As New Button
         BTN.Text = "Run"
         BTN.Left = 10
         BTN.Top = SplitContainer2.Panel1.Height - BTN.Height - BTN.Height - 5
-        BTN.Width = SplitContainer2.Panel1.Width * 0.97
+        BTN.Width = SplitContainer2.Panel1.Width - 20
         BTN.Enabled = Process.IsReady
         AddHandler BTN.Click, Sub()
                                   ListView1.Items.Clear() : TabControl1.SelectedTab = TabControl1.TabPages(0)
-                                  Dim SendText As String = TreeView1.SelectedNode.FullPath.Replace(TreeView1.Nodes(0).Text & "\", "")
-                                  Process.SendCommand(SendText.Replace("\", " "))
+                                  Dim SendText As String = TreeView1.SelectedNode.FullPath.Replace(TreeView1.Nodes(0).Text & "/", "")
+                                  Process.SendCommand(SendText.Replace("/", " "))
                               End Sub
         SplitContainer2.Panel1.Controls.Add(BTN)
 
@@ -179,45 +223,24 @@
         BTNH.Text = "Usage and Examples"
         BTNH.Left = 10
         BTNH.Top = SplitContainer2.Panel1.Height - BTN.Height - 5
-        BTNH.Width = SplitContainer2.Panel1.Width * 0.48
+        BTNH.Width = SplitContainer2.Panel1.Width - 20
         BTNH.Enabled = Process.IsReady
         AddHandler BTNH.Click, Sub()
                                    ListView1.Items.Clear() : TabControl1.SelectedTab = TabControl1.TabPages(0)
-                                   Dim SendText As String = TreeView1.SelectedNode.FullPath.Replace(TreeView1.Nodes(0).Text & "\", "")
-                                   Dim Res = Process.SendCommand(SendText.Replace("\", " ") & " h")
-                                   Dim NOD = Commands.XDOC.SelectSingleNode("PM3/_" & SendText.Replace("\", ".") & "/Usage")
+                                   Dim SendText As String = TreeView1.SelectedNode.FullPath.Replace(TreeView1.Nodes(0).Text & "/", "")
+                                   Dim Res = Process.SendCommand(SendText.Replace("/", " ") & " h")
+                                   Dim NOD = Commands.XDOC.SelectSingleNode("PM3/" & SendText.Replace("/", ".") & "/Usage")
                                    NOD.InnerText = Res : NOD.OwnerDocument.Save("PMConfig.xml")
+                                   Command.HelpTxt += vbCrLf & vbCrLf & Res : HLP.Text = Res
                                End Sub
         SplitContainer2.Panel1.Controls.Add(BTNH)
-
-        Dim BTNE As New Button
-        BTNE.Text = "Add Parameter"
-        BTNE.Left = (SplitContainer2.Panel1.Width * 0.97) - BTNH.Width + 10
-        BTNE.Top = SplitContainer2.Panel1.Height - BTN.Height - 5
-        BTNE.Width = SplitContainer2.Panel1.Width * 0.48
-        AddHandler BTNE.Click, Sub()
-                                   Dim ParNam As String = InputBox("Name")
-                                   Dim ParVal As String = InputBox("Values (Comma-seperated)")
-                                   Dim XNODE = Commands.XDOC.SelectSingleNode("PM3/_" & TreeView1.SelectedNode.FullPath.Replace(TreeView1.Nodes(0).Text & "\", "").Replace("\", ".") & "/Parameters")
-                                   Dim Par = XNODE.AppendChild(XNODE.OwnerDocument.CreateElement("Parameter"))
-                                   Par.Attributes.Append(XNODE.OwnerDocument.CreateAttribute("Name")) : Par.Attributes("Name").Value = ParNam
-                                   Par.Attributes.Append(XNODE.OwnerDocument.CreateAttribute("Default")) : Par.Attributes("Default").Value = Split(ParVal, ",")(0)
-                                   For Each ParVal In Split(ParVal, ",")
-                                       Dim Val = Par.AppendChild(Par.OwnerDocument.CreateElement("Value")) : Val.InnerText = ParVal
-                                   Next : XNODE.OwnerDocument.Save("PMConfig.xml")
-                                   CType(TreeView1.SelectedNode.Tag, Commands.Command).OptPara.Add(New Commands.Parameter(Par))
-                                   CreateMenu(Command) : Exit Sub
-                               End Sub
-        SplitContainer2.Panel1.Controls.Add(BTNE)
 
     End Sub
 
 #Region "Resize"
     Private Sub Form1_Resize(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Resize
-
         If IsNothing(TreeView1.SelectedNode) Then Exit Sub
         CreateMenu(TreeView1.SelectedNode.Tag)
-
     End Sub
     Private Sub SplitContainer1_SplitterMoved(ByVal sender As Object, ByVal e As System.Windows.Forms.SplitterEventArgs) Handles SplitContainer1.SplitterMoved
         If IsNothing(TreeView1.SelectedNode) Then Exit Sub
@@ -229,8 +252,8 @@
     End Sub
 #End Region
 
-    Delegate Sub ListAddDelegate(Text As String)
-    Private Sub ListAdd(Text As String)
+    Delegate Sub ListAddDelegate(ByVal Text As String)
+    Private Sub ListAdd(ByVal Text As String)
         If Me.InvokeRequired = True Then
             ListView1.Invoke(New ListAddDelegate(AddressOf ListAdd), Text)
         Else
@@ -238,16 +261,13 @@
         End If
     End Sub
 
-    Private Sub ToolStripButton3_Click(sender As System.Object, e As System.EventArgs)
-        Process.SendCommand(TxtRaw.Text) : Threading.Thread.Sleep(500)
-    End Sub
     Private Sub P3GUI_Resize(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Resize, SplitContainer1.SplitterMoved
         Application.DoEvents()
         ToolStripTextBox1.Size = New Drawing.Size(SplitContainer1.Panel1.Width, ToolStripTextBox1.Height)
         TxtRaw.Size = New Drawing.Size(SplitContainer1.Panel2.Width - BtnRawSend.Width, TxtRaw.Height)
     End Sub
     Private Sub ToolStripTextBox1_KeyUp(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles ToolStripTextBox1.KeyUp
-        TxtRaw.Text = TreeView1.SelectedNode.FullPath.Replace(TreeView1.Nodes(0).Text & "\", "") : SplitContainer2.Panel1.Controls.Clear()
+        TxtRaw.Text = TreeView1.SelectedNode.FullPath.Replace(TreeView1.Nodes(0).Text & "/", "") : SplitContainer2.Panel1.Controls.Clear()
 
         TreeView1.Nodes(0).Nodes.Clear()
         TreeView1.BeginUpdate()

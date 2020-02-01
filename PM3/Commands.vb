@@ -51,7 +51,7 @@
     Function TextToCommands(ByVal Text As String) As List(Of Command)
         Dim TXT As List(Of String) = Split(Text, vbCrLf).ToList
         Dim LST As List(Of String) = TXT.FindAll(Function(s) Split(s, "|").Count >= 3).ToArray.ToList
-        LST.RemoveAll(Function(s) Mid(s, 26, 1) <> "|" Or Mid(s, 1, 7) = "command" Or Mid(s, 1, 7) = "-------")
+        LST.RemoveAll(Function(s) Mid(s, 26, 1) <> "|" Or Mid(s, 1, 7) = "command" Or Mid(s, 1, 7) = "-------" Or s.Contains("Proxmark3.exe"))
         Dim CMDL = New List(Of Command) : For Each Entry In LST : CMDL.Add(New Command(Entry)) : Next
         Return CMDL
     End Function
@@ -74,7 +74,7 @@
         XDoc.AppendChild(XNod)
 
         For Each Command In Commands
-            Dim Node = XNod.AppendChild(XNod.OwnerDocument.CreateElement("_" & String.Join(".", Command.ModPath)))
+            Dim Node = XNod.AppendChild(XNod.OwnerDocument.CreateElement(String.Join(".", Command.ModPath)))
             Dim Help = Node.AppendChild(XNod.OwnerDocument.CreateElement("Help")) : Help.InnerText = Command.HelpTxt
             Dim Offl = Node.AppendChild(XNod.OwnerDocument.CreateElement("Offline")) : Offl.InnerText = Command.Offline
             Dim Exte = Node.AppendChild(XNod.OwnerDocument.CreateElement("Extended")) : Exte.InnerText = False
@@ -111,6 +111,27 @@
         Return Target
     End Function
 
+    Sub AddParameter(ByVal Node As TreeNode, ByVal Name As String, ByVal Options As String)
+        Dim TreePath As String = Node.FullPath.Replace("/", ".").Replace(Node.TreeView.Nodes(0).Text & ".", "PM3/")
+        Dim TreePathP As String = "/Parameters" : Dim XNODE = XDOC.SelectSingleNode(TreePath & TreePathP)
+        Dim Par = XNODE.AppendChild(XNODE.OwnerDocument.CreateElement("Parameter"))
+
+        Par.Attributes.Append(XNODE.OwnerDocument.CreateAttribute("Name")) : Par.Attributes("Name").Value = Name
+        Par.Attributes.Append(XNODE.OwnerDocument.CreateAttribute("Default")) : Par.Attributes("Default").Value = Split(Options, ",")(0)
+        For Each ParVal In Split(Options, ",")
+            Dim Val = Par.AppendChild(Par.OwnerDocument.CreateElement("Value")) : Val.InnerText = ParVal
+        Next : XNODE.OwnerDocument.Save("PMConfig.xml")
+        CType(Node.Tag, Commands.Command).OptPara.Add(New Commands.Parameter(Par))
+    End Sub
+    Sub DelParameter(ByVal Node As TreeNode, ByVal Param As Parameter)
+        Dim TreePath As String = Node.FullPath.Replace("/", ".").Replace(Node.TreeView.Nodes(0).Text & ".", "PM3/")
+        Dim TreePathP As String = "/Parameters/Parameter[@Name='" & Param.Name & "']"
+        Dim XNODE = XDOC.SelectSingleNode(TreePath & TreePathP)
+
+        XNODE.ParentNode.RemoveChild(XNODE) : XNODE.OwnerDocument.Save("PMConfig.xml")
+        CType(Node.Tag, Commands.Command).OptPara.Remove(Param)
+    End Sub
+
     Public Class Command
         Property OrgPath As String
         Property ModPath As String()
@@ -121,7 +142,7 @@
             Return String.Join(".", ModPath) & " :" & OptPara.Count
         End Function
         Sub New(ByVal XMLNode As Xml.XmlNode)
-            OrgPath = Mid(XMLNode.Name, 2)
+            OrgPath = XMLNode.Name
             ModPath = Split(OrgPath, ".")
             Offline = CBool(XMLNode.SelectSingleNode("Offline").InnerText)
             HelpTxt = XMLNode.SelectSingleNode("Help").InnerText
@@ -131,8 +152,12 @@
             Next
         End Sub
         Sub New(ByVal Commandline As String)
-            Dim SPLT As System.Text.RegularExpressions.Match = System.Text.RegularExpressions.Regex.Match(Commandline, "^([a-zA-Z0-9 ]*)\|([YN][ ]*)\|(.*)?$", System.Text.RegularExpressions.RegexOptions.Multiline)
-            OrgPath = SPLT.Groups(1).Value.Trim : ModPath = Split(OrgPath, " ")
+            Dim SPLT As System.Text.RegularExpressions.Match = System.Text.RegularExpressions.Regex.Match(Commandline, "^([a-zA-Z0-9_ ]*)\|([YN][ ]*)\|(.*)?$", System.Text.RegularExpressions.RegexOptions.Multiline)
+            OrgPath = SPLT.Groups(1).Value.Trim : If OrgPath = "" Then OrgPath = Commandline.Split("|")(0).Trim
+            'If OrgPath.Contains("lf") Then
+            '    Dim a = 1
+            'End If
+            ModPath = Split(OrgPath, " ")
             Offline = SPLT.Groups(2).Value.Trim = "Y"
             HelpTxt = SPLT.Groups(3).Value.Trim
 
@@ -140,6 +165,10 @@
             Dim Params As System.Text.RegularExpressions.MatchCollection = System.Text.RegularExpressions.Regex.Matches(ReplText, "(\[(.*?)\]|<(.*?)>)")
             For i As Integer = 0 To Params.Count - 1
                 Dim ParaVal As String = Params(i).Groups(1).Value
+                If ParaVal.StartsWith("<") Then ParaVal = ParaVal.Remove(0, 1)
+                If ParaVal.EndsWith(">") Then ParaVal = ParaVal.Remove(ParaVal.Length - 1, 1)
+                If ParaVal.StartsWith("[") Then ParaVal = ParaVal.Remove(0, 1)
+                If ParaVal.EndsWith("]") Then ParaVal = ParaVal.Remove(ParaVal.Length - 1, 1)
                 OptPara.Add(New Parameter(ParaVal))
                 ReplText = ReplText.Replace(Params(i).Value, "")
             Next

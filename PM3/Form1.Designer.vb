@@ -22,11 +22,9 @@ Partial Class P3GUI
     'Das Bearbeiten mit dem Code-Editor ist nicht möglich.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
+        Dim TreeNode1 As System.Windows.Forms.TreeNode = New System.Windows.Forms.TreeNode("Proxmark3")
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(P3GUI))
-        Dim TreeNode2 As System.Windows.Forms.TreeNode = New System.Windows.Forms.TreeNode("Proxmark3")
         Me.StatusStrip1 = New System.Windows.Forms.StatusStrip()
-        Me.ToolStripSplitButton1 = New System.Windows.Forms.ToolStripSplitButton()
-        Me.SaveConfigToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.LBLConn = New System.Windows.Forms.ToolStripStatusLabel()
         Me.ToolStripContainer1 = New System.Windows.Forms.ToolStripContainer()
         Me.SplitContainer1 = New System.Windows.Forms.SplitContainer()
@@ -60,29 +58,12 @@ Partial Class P3GUI
         '
         'StatusStrip1
         '
-        Me.StatusStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ToolStripSplitButton1, Me.LBLConn})
+        Me.StatusStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.LBLConn})
         Me.StatusStrip1.Location = New System.Drawing.Point(0, 677)
         Me.StatusStrip1.Name = "StatusStrip1"
         Me.StatusStrip1.Size = New System.Drawing.Size(1016, 22)
         Me.StatusStrip1.TabIndex = 0
         Me.StatusStrip1.Text = "StatusStrip1"
-        '
-        'ToolStripSplitButton1
-        '
-        Me.ToolStripSplitButton1.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right
-        Me.ToolStripSplitButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.ToolStripSplitButton1.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveConfigToolStripMenuItem})
-        Me.ToolStripSplitButton1.Image = CType(resources.GetObject("ToolStripSplitButton1.Image"), System.Drawing.Image)
-        Me.ToolStripSplitButton1.ImageTransparentColor = System.Drawing.Color.Magenta
-        Me.ToolStripSplitButton1.Name = "ToolStripSplitButton1"
-        Me.ToolStripSplitButton1.Size = New System.Drawing.Size(32, 20)
-        Me.ToolStripSplitButton1.Text = "ToolStripSplitButton1"
-        '
-        'SaveConfigToolStripMenuItem
-        '
-        Me.SaveConfigToolStripMenuItem.Name = "SaveConfigToolStripMenuItem"
-        Me.SaveConfigToolStripMenuItem.Size = New System.Drawing.Size(137, 22)
-        Me.SaveConfigToolStripMenuItem.Text = "Save Config"
         '
         'LBLConn
         '
@@ -134,9 +115,10 @@ Partial Class P3GUI
         Me.TreeView1.HideSelection = False
         Me.TreeView1.Location = New System.Drawing.Point(0, 0)
         Me.TreeView1.Name = "TreeView1"
-        TreeNode2.Name = "Knoten0"
-        TreeNode2.Text = "Proxmark3"
-        Me.TreeView1.Nodes.AddRange(New System.Windows.Forms.TreeNode() {TreeNode2})
+        TreeNode1.Name = "Knoten0"
+        TreeNode1.Text = "Proxmark3"
+        Me.TreeView1.Nodes.AddRange(New System.Windows.Forms.TreeNode() {TreeNode1})
+        Me.TreeView1.PathSeparator = "/"
         Me.TreeView1.Size = New System.Drawing.Size(297, 652)
         Me.TreeView1.TabIndex = 0
         '
@@ -292,7 +274,5 @@ Partial Class P3GUI
     Friend WithEvents TxtRaw As System.Windows.Forms.ToolStripTextBox
     Friend WithEvents BtnRawSend As System.Windows.Forms.ToolStripButton
     Friend WithEvents ToolStripTextBox1 As System.Windows.Forms.ToolStripTextBox
-    Friend WithEvents ToolStripSplitButton1 As System.Windows.Forms.ToolStripSplitButton
-    Friend WithEvents SaveConfigToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 
 End Class
