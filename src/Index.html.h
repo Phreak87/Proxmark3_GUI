@@ -131,7 +131,7 @@ header button:hover { background:#e65500; }
     <div class="mb-3">
       <label for="port-select" class="form-label">Port auswählen</label>
       <select class="form-select" id="port-select" onchange="loadPortSettings()">
-        <option value="1">Alle</option>
+        <option value="1">All</option>
         <option value="1">Port 1</option>
         <option value="2">Port 2</option>
         <option value="3">Port 3</option>
