@@ -10,7 +10,7 @@
 
 const int RelaisPins[8] = {32, 33, 25, 26, 27, 14, 12, 13};
 
-#define HX_DT  4
+#define HX_DT  4 // HX711 data pin
 #define HX_SCK 16
 #define AP_SSID " Cocktail"
 #define AP_PASS "12345678"
