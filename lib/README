@@ -17,7 +17,7 @@ For example, see the structure of the following example libraries `Foo` and `Bar
 |  |     |- Bar.h
 |  |  |- library.json (optional. for custom build options, etc) https://docs.platformio.org/page/librarymanager/config.html
 |  |
-|  |--Foo
+|  |--Foobar
 |  |  |- Foo.c
 |  |  |- Foo.h
 |  |
